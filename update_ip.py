@@ -209,12 +209,18 @@ def load_rule_configs() -> list[RuleConfig]:
     configs: list[RuleConfig] = []
 
     # ── Discover numbered blocks: RULE_1_, RULE_2_, … ─────────────────────────
+    # A block is recognised if it sets ANY of the three required keys.
+    # The others may come from global fallbacks (e.g. a shared API_KEY).
     numbered: dict[int, str] = {}
+    _TRIGGER_KEYS = {"_API_KEY", "_RESOURCE_ID", "_RULE_ID"}
     for key in os.environ:
-        if key.startswith("RULE_") and key.endswith("_API_KEY"):
-            middle = key[len("RULE_"):-len("_API_KEY")]
-            if middle.isdigit():
-                numbered[int(middle)] = f"RULE_{middle}_"
+        if key.startswith("RULE_"):
+            for suffix in _TRIGGER_KEYS:
+                if key.endswith(suffix):
+                    middle = key[len("RULE_"):-len(suffix)]
+                    if middle.isdigit():
+                        numbered[int(middle)] = f"RULE_{middle}_"
+                    break
 
     if numbered:
         for idx in sorted(numbered):
