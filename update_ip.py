@@ -13,10 +13,25 @@ Multi-rule format — add as many numbered blocks as you need:
     RULE_2_API_KEY=...        RULE_2_RESOURCE_ID=2   RULE_2_RULE_ID=3
     RULE_2_PANGOLIN_HOST=...  RULE_2_TARGET_DOMAIN=my.home.dyndns.org
 
-Every RULE_N_ block inherits global optional defaults (LOOP_SECONDS,
-LOOP_JITTER, RULE_PRIORITY, RULE_ACTION, RULE_MATCH, RULE_ENABLED,
-IP_SERVICE_URL) but can override each one individually — including
-EXPOSE_TRIGGER_WEBSITE and its companion settings.
+Every RULE_N_ block inherits global optional defaults but can override each
+one individually. All variables support both global and per-rule forms:
+
+    Global (fallback)            Per-rule override
+    ───────────────────────────  ──────────────────────────────────
+    PANGOLIN_HOST                RULE_N_PANGOLIN_HOST
+    LOOP_SECONDS                 RULE_N_LOOP_SECONDS
+    LOOP_JITTER                  RULE_N_LOOP_JITTER
+    RULE_PRIORITY                RULE_N_RULE_PRIORITY
+    RULE_ACTION                  RULE_N_RULE_ACTION
+    RULE_MATCH                   RULE_N_RULE_MATCH
+    RULE_ENABLED                 RULE_N_RULE_ENABLED
+    TARGET_DOMAIN                RULE_N_TARGET_DOMAIN
+    IP_SERVICE_URL               RULE_N_IP_SERVICE_URL
+    EXPOSE_TRIGGER_WEBSITE       RULE_N_EXPOSE_TRIGGER_WEBSITE
+    TRIGGER_WEBSITE_DOMAIN       RULE_N_TRIGGER_WEBSITE_DOMAIN
+    TRIGGER_WEBSITE_PATH         RULE_N_TRIGGER_WEBSITE_PATH
+    TRIGGER_WEBSITE_PORT         RULE_N_TRIGGER_WEBSITE_PORT
+    TRIGGER_SECRET               RULE_N_TRIGGER_SECRET
 
 Each rule independently chooses its mode:
   • EXPOSE_TRIGGER_WEBSITE=False (default) → polling loop
@@ -46,12 +61,8 @@ load_dotenv()
 
 # ── Global / shared optional defaults ─────────────────────────────────────────
 
+# Fallback used when neither RULE_N_IP_SERVICE_URL nor IP_SERVICE_URL is set.
 _DEFAULT_IP_SERVICES = "https://wtfismyip.com/text,https://api.ipify.org,https://icanhazip.com"
-_GLOBAL_IP_SERVICE_URLS = [
-    u.strip()
-    for u in os.environ.get("IP_SERVICE_URL", _DEFAULT_IP_SERVICES).split(",")
-    if u.strip()
-]
 
 _RULE_FETCH_COOLDOWN = 60   # seconds before retrying a failed Pangolin fetch
 
@@ -169,7 +180,7 @@ def _pick(prefix: str, key: str, default: str) -> str:
 
 def _build_rule(label: str, prefix: str) -> RuleConfig:
     """Build a RuleConfig from env vars, using prefix for per-rule overrides."""
-    ip_svc_raw = _pick(prefix, "IP_SERVICE_URL", ",".join(_GLOBAL_IP_SERVICE_URLS))
+    ip_svc_raw = _pick(prefix, "IP_SERVICE_URL", _DEFAULT_IP_SERVICES)
     ip_services = [u.strip() for u in ip_svc_raw.split(",") if u.strip()]
 
     return RuleConfig(
